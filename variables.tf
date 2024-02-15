@@ -11,3 +11,18 @@ variable "env"{
 type = string
 }
 
+variable "subnet1"{
+type = string
+default = "webapp"
+}
+
+variable "subnet2"{
+type = string
+default = "db"
+}
+
+variable "webapp-route"{
+type = string
+default = "webapp-route"
+}
+
