@@ -17,3 +17,5 @@ jobs:
         run: terraform init
       - name: Terraform Validate
         run: terraform validate
+      - name: Completion Status
+        run: echo "DONE!"
