@@ -66,6 +66,33 @@ variable "ssh-port" {
   type = string
   default = "22"
 }
-
-
+#vm
+variable "vm-name" {
+  type= string
+  default = "app-vm"
+}
+variable "vm-type" {
+  type= string
+  default = "e2-standard-2"
+}
+variable "vm-zone-append" {
+  type=string
+  default = "a"
+}
+variable "custom-image-family" {
+  type = string
+}
+variable "boot-disk-size" {
+  type=number
+  default = 100
+}
+variable "boot-disk-type" {
+  type=string
+  default = "pd-balanced"
+}
+#tags
+variable "webapp-subnet-tag"{
+  type = string
+  default = "webapp"
+}
 

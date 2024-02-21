@@ -37,6 +37,7 @@ resource "google_compute_firewall" "allow-from-internet" {
     ports    = [var.app-port]
   }
   source_ranges = [var.internet-ip]
+  target_tags = [var.webapp-subnet-tag]
 }
 resource "google_compute_firewall" "deny-ssh-from-internet" {
   name    = var.deny-rule
@@ -46,4 +47,23 @@ resource "google_compute_firewall" "deny-ssh-from-internet" {
     ports    = [var.ssh-port]
   }
   source_ranges = [var.internet-ip]
+}
+#VM:
+resource "google_compute_instance" "centos-vm" {
+  name         = var.vm-name
+  machine_type = var.vm-type
+  zone         = "${var.region}-${var.vm-zone-append}"
+   depends_on   = [google_compute_network.vpc_network]
+boot_disk {
+    initialize_params {
+      image = var.custom-image-family
+      size  = var.boot-disk-size   
+      type  = var.boot-disk-type
+    }
+  }
+network_interface {
+    network = google_compute_network.vpc_network.id
+    subnetwork = google_compute_subnetwork.subnet-webapp.id
+  }
+  tags = [var.webapp-subnet-tag]
 }
