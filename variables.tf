@@ -45,5 +45,15 @@ type = string
 default = "webapp-route"
 }
 
+variable "dest_internet"{
+type = string
+default = "0.0.0.0/0"
+}
+
+variable "routing-mode" {
+  type = string
+  default = "REGIONAL"
+}
+
 
 

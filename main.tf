@@ -4,7 +4,7 @@ resource "google_compute_network" "vpc_network" {
   project                 = var.project_name
   name                    = "vpc-${var.env}-${var.i}"
   auto_create_subnetworks = false
-  routing_mode = "REGIONAL"
+  routing_mode = var.routing-mode
   delete_default_routes_on_create = true
 }
 resource "google_compute_subnetwork" "subnet-webapp" {
@@ -24,6 +24,6 @@ resource "google_compute_subnetwork" "subnet-db" {
 resource "google_compute_route" "webapp-route" {
   name = var.webapp-route
   network = google_compute_network.vpc_network.id
-  dest_range = "0.0.0.0/0"
+  dest_range = var.dest_internet
   next_hop_gateway = "default-internet-gateway"
 }
