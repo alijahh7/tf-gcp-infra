@@ -28,10 +28,11 @@ resource "google_compute_route" "webapp-route" {
   next_hop_gateway = "default-internet-gateway"
 }
 
-#Firewall:
+# Firewall:
 resource "google_compute_firewall" "allow-from-internet" {
   name    = var.allow-rule
   network = google_compute_network.vpc_network.name
+  priority = var.allow-priority
   allow {
     protocol = var.protocol
     ports    = [var.app-port]
@@ -42,13 +43,14 @@ resource "google_compute_firewall" "allow-from-internet" {
 resource "google_compute_firewall" "deny-ssh-from-internet" {
   name    = var.deny-rule
   network = google_compute_network.vpc_network.name
+  priority = var.allow-priority+1
   deny {
     protocol = var.protocol
-    ports    = [var.ssh-port]
+    ports    = []
   }
   source_ranges = [var.internet-ip]
 }
-#VM:
+# VM:
 resource "google_compute_instance" "centos-vm" {
   name         = var.vm-name
   machine_type = var.vm-type
@@ -64,6 +66,9 @@ boot_disk {
 network_interface {
     network = google_compute_network.vpc_network.id
     subnetwork = google_compute_subnetwork.subnet-webapp.id
+    access_config {
+      //Empty --> Ephemeral IP (dynamic)
+    }
   }
   tags = [var.webapp-subnet-tag]
 }

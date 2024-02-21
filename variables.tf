@@ -96,3 +96,8 @@ variable "webapp-subnet-tag"{
   default = "webapp"
 }
 
+variable "allow-priority"{
+  type = number
+  default = 1000
+}
+
