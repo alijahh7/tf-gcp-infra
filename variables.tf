@@ -6,19 +6,10 @@ variable "region"{
 type = string
 default = "us-east1"
 }
-
-variable "env"{
+##VPC & Subnets
+variable "vpc-name"{
 type = string
 }
-
-##VPC & Subnets
-
-variable "i" {
-  type    = number
-  default = 100
-}
-
-
 variable "subnet1"{
 type = string
 default = "webapp"
@@ -45,7 +36,7 @@ type = string
 default = "webapp-route"
 }
 
-variable "dest_internet"{
+variable "internet-ip"{
 type = string
 default = "0.0.0.0/0"
 }
@@ -53,6 +44,27 @@ default = "0.0.0.0/0"
 variable "routing-mode" {
   type = string
   default = "REGIONAL"
+}
+
+#firewall
+variable "allow-rule" {
+  type = string
+  default = "allow-from-internet"
+}
+variable "deny-rule" {
+  type = string
+  default = "deny-ssh-from-internet"
+}
+variable "protocol" {
+  type = string
+}
+variable "app-port" {
+  type = string
+  default = "8080"
+}
+variable "ssh-port" {
+  type = string
+  default = "22"
 }
 
 
