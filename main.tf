@@ -67,6 +67,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.vpc_network.id
   service                 = var.vpc-conn-service
   reserved_peering_ranges = [google_compute_global_address.private_ip_db.name]
+  #deletion_policy = var.deletion_policy_abandon
 }
 
 resource "google_sql_database_instance" "my_postgres_instance" {
@@ -74,6 +75,7 @@ resource "google_sql_database_instance" "my_postgres_instance" {
   database_version    = var.instance-database-version
   region              = var.region
   deletion_protection = var.instance-delete-protect
+  depends_on = [ google_compute_network.vpc_network ]
 
   settings {
     tier                        = var.instance-tier
@@ -139,3 +141,14 @@ resource "google_compute_instance" "centos-vm" {
   metadata_startup_script = file(var.startup_script_path)
 
 }
+#DNS record set
+resource "google_dns_record_set" "dns_record" {
+  name         = var.domain_name
+  managed_zone = var.dns_zone_name
+  type         = var.dns_record_type
+  ttl          = var.dns_ttl
+
+  rrdatas = [google_compute_instance.centos-vm.network_interface[0].access_config[0].nat_ip]
+
+}
+

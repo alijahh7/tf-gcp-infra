@@ -136,6 +136,9 @@ variable "vpc-conn-service" {
   type    = string
   default = "servicenetworking.googleapis.com"
 }
+variable "deletion_policy_abandon"{
+  type = string
+}
 #sql instance
 variable "instance-name" {
   type    = string
@@ -216,3 +219,20 @@ variable "startup_script_path" {
   type    = string
   default = "./startup.sh"
 }
+#dns
+variable "domain_name"{
+  type = string
+}
+
+variable "dns_zone_name"{
+type = string
+}
+
+variable "dns_ttl" {
+  type = number
+}
+
+variable "dns_record_type" {
+  type = string
+}
+
