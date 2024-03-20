@@ -67,7 +67,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.vpc_network.id
   service                 = var.vpc-conn-service
   reserved_peering_ranges = [google_compute_global_address.private_ip_db.name]
-  #deletion_policy = var.deletion_policy_abandon
+  deletion_policy = var.deletion_policy_abandon
 }
 
 resource "google_sql_database_instance" "my_postgres_instance" {
@@ -115,7 +115,9 @@ resource "google_compute_instance" "centos-vm" {
   name         = var.vm-name
   machine_type = var.vm-type
   zone         = "${var.region}-${var.vm-zone-append}"
-  depends_on   = [google_compute_network.vpc_network]
+  #depends_on   = [google_compute_network.vpc_network]
+  depends_on = [google_compute_network.vpc_network, google_service_account.vm_service_account, google_sql_database_instance.my_postgres_instance]
+
   boot_disk {
     initialize_params {
       image = var.custom-image-family
@@ -139,6 +141,10 @@ resource "google_compute_instance" "centos-vm" {
     db-name = google_sql_database.psql_database.name
   }
   metadata_startup_script = file(var.startup_script_path)
+  service_account {
+    email  = google_service_account.vm_service_account.email
+    scopes = ["cloud-platform"]
+  }
 
 }
 #DNS record set
@@ -152,3 +158,27 @@ resource "google_dns_record_set" "dns_record" {
 
 }
 
+#Service Account for VM
+resource "google_service_account" "vm_service_account" {
+  account_id   = "vm-service-account"
+  display_name = "VM Service Account"
+}
+
+#IAM Roles for SA:
+resource "google_project_iam_binding" "role_logging" {
+  project = var.project_name
+  role    = "roles/logging.admin"
+  
+  members = [
+    "serviceAccount:${google_service_account.vm_service_account.email}"
+  ]
+}
+
+resource "google_project_iam_binding" "role_monitoring_metric_writer" {
+  project = var.project_name
+  role    = "roles/monitoring.metricWriter"
+  
+  members = [
+    "serviceAccount:${google_service_account.vm_service_account.email}"
+  ]
+}
