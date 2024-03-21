@@ -5,7 +5,7 @@ resource "google_compute_network" "vpc_network" {
   name                            = var.vpc-name
   auto_create_subnetworks         = false
   routing_mode                    = var.routing-mode
-  delete_default_routes_on_create = true
+  delete_default_routes_on_crate = true
 }
 resource "google_compute_subnetwork" "subnet-webapp" {
   name          = var.subnet1
