@@ -136,7 +136,7 @@ variable "vpc-conn-service" {
   type    = string
   default = "servicenetworking.googleapis.com"
 }
-variable "deletion_policy_abandon"{
+variable "deletion_policy_abandon" {
   type = string
 }
 #sql instance
@@ -220,12 +220,12 @@ variable "startup_script_path" {
   default = "./startup.sh"
 }
 #dns
-variable "domain_name"{
+variable "domain_name" {
   type = string
 }
 
-variable "dns_zone_name"{
-type = string
+variable "dns_zone_name" {
+  type = string
 }
 
 variable "dns_ttl" {
@@ -236,3 +236,21 @@ variable "dns_record_type" {
   type = string
 }
 
+#service account for VM
+variable "sa_account_id" {
+  type = string
+}
+variable "sa_display_name" {
+  type = string
+}
+#IAM for SA
+variable "logging_role" {
+  type = string
+}
+
+variable "metrics_role" {
+  type = string
+}
+variable "vm_sa_scope" {
+  type = string
+}

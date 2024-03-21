@@ -67,7 +67,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.vpc_network.id
   service                 = var.vpc-conn-service
   reserved_peering_ranges = [google_compute_global_address.private_ip_db.name]
-  deletion_policy = var.deletion_policy_abandon
+  deletion_policy         = var.deletion_policy_abandon
 }
 
 resource "google_sql_database_instance" "my_postgres_instance" {
@@ -75,7 +75,7 @@ resource "google_sql_database_instance" "my_postgres_instance" {
   database_version    = var.instance-database-version
   region              = var.region
   deletion_protection = var.instance-delete-protect
-  depends_on = [ google_compute_network.vpc_network ]
+  depends_on          = [google_compute_network.vpc_network, google_service_networking_connection.private_vpc_connection]
 
   settings {
     tier                        = var.instance-tier
@@ -143,7 +143,7 @@ resource "google_compute_instance" "centos-vm" {
   metadata_startup_script = file(var.startup_script_path)
   service_account {
     email  = google_service_account.vm_service_account.email
-    scopes = ["cloud-platform"]
+    scopes = [var.vm_sa_scope]
   }
 
 }
@@ -160,15 +160,15 @@ resource "google_dns_record_set" "dns_record" {
 
 #Service Account for VM
 resource "google_service_account" "vm_service_account" {
-  account_id   = "vm-service-account"
-  display_name = "VM Service Account"
+  account_id   = var.sa_account_id
+  display_name = var.sa_display_name
 }
 
 #IAM Roles for SA:
 resource "google_project_iam_binding" "role_logging" {
   project = var.project_name
-  role    = "roles/logging.admin"
-  
+  role    = var.logging_role
+
   members = [
     "serviceAccount:${google_service_account.vm_service_account.email}"
   ]
@@ -176,8 +176,8 @@ resource "google_project_iam_binding" "role_logging" {
 
 resource "google_project_iam_binding" "role_monitoring_metric_writer" {
   project = var.project_name
-  role    = "roles/monitoring.metricWriter"
-  
+  role    = var.metrics_role
+
   members = [
     "serviceAccount:${google_service_account.vm_service_account.email}"
   ]
