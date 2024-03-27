@@ -116,7 +116,7 @@ resource "google_compute_instance" "centos-vm" {
   machine_type = var.vm-type
   zone         = "${var.region}-${var.vm-zone-append}"
   #depends_on   = [google_compute_network.vpc_network]
-  depends_on = [google_compute_network.vpc_network, google_service_account.vm_service_account, google_sql_database_instance.my_postgres_instance]
+  depends_on = [google_compute_network.vpc_network, google_service_account.vm_service_account, google_sql_database_instance.my_postgres_instance, google_pubsub_topic.pub_sub_topic]
 
   boot_disk {
     initialize_params {
@@ -182,3 +182,81 @@ resource "google_project_iam_binding" "role_monitoring_metric_writer" {
     "serviceAccount:${google_service_account.vm_service_account.email}"
   ]
 }
+
+resource "google_project_iam_binding" "role_pubsub_publisher" {
+  project = var.project_name
+  role    = "roles/pubsub.publisher"
+
+  members = [
+    "serviceAccount:${google_service_account.vm_service_account.email}"
+  ]
+}
+#pubsub
+resource "google_pubsub_topic" "pub_sub_topic" {
+  name                       = "verify_email"
+  message_retention_duration = "604800s"
+}
+
+#vpc connector serverless
+resource "google_vpc_access_connector" "serverless_vpc_connector" {
+  name          = "vpc-con"
+  ip_cidr_range = "10.8.0.0/28"
+  network       = google_compute_network.vpc_network.id
+  depends_on    = [google_compute_network.vpc_network]
+}
+
+#cloud function -> depends on pubsub
+
+
+resource "google_cloudfunctions2_function" "email_cloud_function" {
+  name        = "email-send"
+  location    = "us-central1"
+  description = "a new function"
+  depends_on  = [google_sql_database_instance.my_postgres_instance, google_vpc_access_connector.serverless_vpc_connector]
+
+
+  build_config {
+    runtime     = "nodejs20"
+    entry_point = "helloPubSub" # Set the entry point
+    environment_variables = {
+      BUILD_CONFIG_TEST = "build_test"
+      PASSWORD          = google_sql_user.psql_user.password
+      HOST              = google_sql_database_instance.my_postgres_instance.private_ip_address
+      USER              = google_sql_user.psql_user.name
+      DB                = google_sql_database.psql_database.name
+    }
+    source {
+      storage_source {
+        bucket = "code-for-cloud-function"
+        object = "Archive.zip"
+      }
+    }
+  }
+
+  service_config {
+    max_instance_count = 1
+    min_instance_count = 1
+    available_memory   = "128Mi"
+    timeout_seconds    = 540
+    environment_variables = {
+      SERVICE_CONFIG_TEST = "config_test"
+      PASSWORD            = google_sql_user.psql_user.password
+      HOST                = google_sql_database_instance.my_postgres_instance.private_ip_address
+      USER                = google_sql_user.psql_user.name
+      DB                  = google_sql_database.psql_database.name
+    }
+    ingress_settings               = "ALLOW_INTERNAL_ONLY"
+    all_traffic_on_latest_revision = true
+    //service_account_email          = google_service_account.default.email
+    vpc_connector = google_vpc_access_connector.serverless_vpc_connector.name
+
+  }
+
+  event_trigger {
+    trigger_region = "us-central1"
+    event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
+    pubsub_topic   = google_pubsub_topic.pub_sub_topic.id
+    retry_policy   = "RETRY_POLICY_DO_NOT_RETRY"
+  }
+}
+
