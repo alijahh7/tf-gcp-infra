@@ -224,6 +224,7 @@ resource "google_cloudfunctions2_function" "email_cloud_function" {
       HOST              = google_sql_database_instance.my_postgres_instance.private_ip_address
       USER              = google_sql_user.psql_user.name
       DB                = google_sql_database.psql_database.name
+      MAILGUN_API_KEY = var.mailgun_key
     }
     source {
       storage_source {
@@ -244,6 +245,8 @@ resource "google_cloudfunctions2_function" "email_cloud_function" {
       HOST                = google_sql_database_instance.my_postgres_instance.private_ip_address
       USER                = google_sql_user.psql_user.name
       DB                  = google_sql_database.psql_database.name
+      MAILGUN_API_KEY = var.mailgun_key
+
     }
     ingress_settings               = var.cloudfn_serviceconf_ingress
     all_traffic_on_latest_revision = var.cloudfn_serviceconf_latest_revision
