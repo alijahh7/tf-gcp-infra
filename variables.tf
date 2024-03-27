@@ -254,3 +254,77 @@ variable "metrics_role" {
 variable "vm_sa_scope" {
   type = string
 }
+
+variable "pubsub_role" {
+  type = string
+}
+variable "pubsub_topic"{
+  type = string
+}
+variable "pubsub_duration"{
+  type= string
+}
+
+variable "vpc_connector_name"{
+  type = string
+}
+variable "vpc_connector_ip" {
+  type = string
+}
+variable "cloudfn_name"{
+  type = string
+}
+variable "cloudfn_location" {
+  type= string
+}
+variable "cloudfn_description" {
+  type = string
+}
+variable "cloudfn_buildconf_runtime" {
+  type = string
+}
+variable "cloudfn_buildconf_entry_point" {
+  type = string
+}
+variable "cloudfn_buildconf_test" {
+  type = string
+}
+variable "cloudfn_storage_bucket" {
+  type = string
+}
+variable "cloudfn_storage_object" {
+  type= string
+}
+variable "cloudfn_serviceconf_max_instance" {
+  type = number
+}
+variable "cloudfn_serviceconf_min_instance" {
+  type = number
+}
+variable "cloudfn_serviceconf_available_memory" {
+  type = string
+}
+variable "cloudfn_serviceconf_timeout_seconds" {
+  type = number
+}
+variable "cloudfn_serviceconf_test" {
+  type = string
+}
+variable "cloudfn_serviceconf_ingress" {
+  type = string
+}
+variable "cloudfn_serviceconf_latest_revision" {
+  type = bool
+}
+variable "cloudfn_eventtrig_region" {
+  type = string
+}
+variable "cloudfn_eventtrig_type" {
+  type = string
+}
+variable "cloudfn_eventtrig_retry_policy" {
+  type = string
+}
+
+
+
