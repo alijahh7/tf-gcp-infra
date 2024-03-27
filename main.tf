@@ -185,7 +185,7 @@ resource "google_project_iam_binding" "role_monitoring_metric_writer" {
 
 resource "google_project_iam_binding" "role_pubsub_publisher" {
   project = var.project_name
-  role    = "roles/pubsub.publisher"
+  role    = var.pubsub_role
 
   members = [
     "serviceAccount:${google_service_account.vm_service_account.email}"
@@ -193,14 +193,14 @@ resource "google_project_iam_binding" "role_pubsub_publisher" {
 }
 #pubsub
 resource "google_pubsub_topic" "pub_sub_topic" {
-  name                       = "verify_email"
-  message_retention_duration = "604800s"
+  name                       = var.pubsub_topic
+  message_retention_duration = var.pubsub_duration
 }
 
 #vpc connector serverless
 resource "google_vpc_access_connector" "serverless_vpc_connector" {
-  name          = "vpc-con"
-  ip_cidr_range = "10.8.0.0/28"
+  name          = var.vpc_connector_name
+  ip_cidr_range = var.vpc_connector_ip
   network       = google_compute_network.vpc_network.id
   depends_on    = [google_compute_network.vpc_network]
 }
@@ -209,17 +209,17 @@ resource "google_vpc_access_connector" "serverless_vpc_connector" {
 
 
 resource "google_cloudfunctions2_function" "email_cloud_function" {
-  name        = "email-send"
-  location    = "us-central1"
-  description = "a new function"
+  name        = var.cloudfn_name
+  location    = var.cloudfn_location
+  description = var.cloudfn_description
   depends_on  = [google_sql_database_instance.my_postgres_instance, google_vpc_access_connector.serverless_vpc_connector]
 
 
   build_config {
-    runtime     = "nodejs20"
-    entry_point = "helloPubSub" # Set the entry point
+    runtime     = var.cloudfn_buildconf_runtime
+    entry_point = var.cloudfn_buildconf_entry_point
     environment_variables = {
-      BUILD_CONFIG_TEST = "build_test"
+      BUILD_CONFIG_TEST = var.cloudfn_buildconf_test
       PASSWORD          = google_sql_user.psql_user.password
       HOST              = google_sql_database_instance.my_postgres_instance.private_ip_address
       USER              = google_sql_user.psql_user.name
@@ -227,36 +227,36 @@ resource "google_cloudfunctions2_function" "email_cloud_function" {
     }
     source {
       storage_source {
-        bucket = "code-for-cloud-function"
-        object = "Archive.zip"
+        bucket = var.cloudfn_storage_bucket
+        object = var.cloudfn_storage_object
       }
     }
   }
 
   service_config {
-    max_instance_count = 1
-    min_instance_count = 1
-    available_memory   = "128Mi"
-    timeout_seconds    = 540
+    max_instance_count = var.cloudfn_serviceconf_max_instance
+    min_instance_count = var.cloudfn_serviceconf_min_instance
+    available_memory   = var.cloudfn_serviceconf_available_memory
+    timeout_seconds    = var.cloudfn_serviceconf_timeout_seconds
     environment_variables = {
-      SERVICE_CONFIG_TEST = "config_test"
+      SERVICE_CONFIG_TEST = var.cloudfn_serviceconf_test
       PASSWORD            = google_sql_user.psql_user.password
       HOST                = google_sql_database_instance.my_postgres_instance.private_ip_address
       USER                = google_sql_user.psql_user.name
       DB                  = google_sql_database.psql_database.name
     }
-    ingress_settings               = "ALLOW_INTERNAL_ONLY"
-    all_traffic_on_latest_revision = true
+    ingress_settings               = var.cloudfn_serviceconf_ingress
+    all_traffic_on_latest_revision = var.cloudfn_serviceconf_latest_revision
     //service_account_email          = google_service_account.default.email
     vpc_connector = google_vpc_access_connector.serverless_vpc_connector.name
 
   }
 
   event_trigger {
-    trigger_region = "us-central1"
-    event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
+    trigger_region = var.cloudfn_eventtrig_region
+    event_type     = var.cloudfn_eventtrig_type
     pubsub_topic   = google_pubsub_topic.pub_sub_topic.id
-    retry_policy   = "RETRY_POLICY_DO_NOT_RETRY"
+    retry_policy   = var.cloudfn_eventtrig_retry_policy
   }
 }
 
