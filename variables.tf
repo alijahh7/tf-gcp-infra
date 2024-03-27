@@ -325,6 +325,8 @@ variable "cloudfn_eventtrig_type" {
 variable "cloudfn_eventtrig_retry_policy" {
   type = string
 }
-
+variable "mailgun_key" {
+  type = string
+}
 
 
