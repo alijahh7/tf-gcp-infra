@@ -258,24 +258,24 @@ variable "vm_sa_scope" {
 variable "pubsub_role" {
   type = string
 }
-variable "pubsub_topic"{
+variable "pubsub_topic" {
   type = string
 }
-variable "pubsub_duration"{
-  type= string
+variable "pubsub_duration" {
+  type = string
 }
 
-variable "vpc_connector_name"{
+variable "vpc_connector_name" {
   type = string
 }
 variable "vpc_connector_ip" {
   type = string
 }
-variable "cloudfn_name"{
+variable "cloudfn_name" {
   type = string
 }
 variable "cloudfn_location" {
-  type= string
+  type = string
 }
 variable "cloudfn_description" {
   type = string
@@ -293,7 +293,7 @@ variable "cloudfn_storage_bucket" {
   type = string
 }
 variable "cloudfn_storage_object" {
-  type= string
+  type = string
 }
 variable "cloudfn_serviceconf_max_instance" {
   type = number
@@ -328,5 +328,147 @@ variable "cloudfn_eventtrig_retry_policy" {
 variable "mailgun_key" {
   type = string
 }
+#health check firewall
+variable "allow-health-check-rule" {
+  type = string
+}
+variable "health-check-ip1"{
+  type = string
+}
+variable "health-check-ip2" {
+  type = string
+}
 
+#health check
+variable "health_check_name" {
+  type = string
+}
+variable "health_check_description" {
+  type = string
+  default = "Health check via /healthz"
+}
+variable "hc_timeout_sec" {
+  type = number
+}
+variable "hc_check_interval" {
+  type = number
+}
+variable "hc_healthy_threshold" {
+  type = number
+}
+variable "hc_unhealthy_threshold" {
+  type = number
+}
+variable "hc_port" {
+  type = string
+}
+variable "hc_req_path" {
+  type = string
+}
 
+#MIG
+variable "mig_name" {
+  type = string
+}
+variable "mig_base_name" {
+  type = string
+}
+variable "mig_zone_a" {
+  type = string
+}
+variable "mig_zone_f" {
+  type = string
+}
+variable "mig_lb_named_port_number" {
+  type = number
+}
+variable "mig_lb_named_port_name" {
+  type = string
+}
+variable "mig_auto_heal_delay" {
+  type = number
+}
+
+#autoscaler
+variable "as_name" {
+  type = string
+}
+variable "as_policy_max_replicas" {
+  type = number
+}
+
+variable "as_policy_min_replicas" {
+  type = number
+}
+variable "as_policy_cooldown" {
+  type = number
+}
+variable "as_cpu_util_percent" {
+  type = number
+}
+
+#LB subnet
+variable "lb_subnet_name" {
+  type = string
+}
+variable "lb_subnet_cidr" {
+  type = string
+}
+variable "lb_subnet_purpose" {
+  type = string
+}
+variable "lb_subnet_role" {
+  type = string
+}
+#LB forwarding rule
+variable "lb_fr_name" {
+  type = string
+}
+variable "lb_fr_ip_protocol" {
+  type = string
+}
+variable "lb_fr_balancing_scheme" {
+  type = string
+}
+variable "lb_fr_port_range" {
+  type = string
+}
+variable "lb_fr_network_tier" {
+  type = string
+}
+#LB url map
+variable "lb_urlmap_name" {
+  type = string
+}
+#LB backend service
+variable "lb_bs_name" {
+  type = string
+}
+variable "lb_bs_protocol"{
+  type = string
+}
+variable "lb_bs_timeout" {
+  type = number
+}
+variable "lb_bs_load_balancing_scheme" {
+  type = string
+}
+variable "lb_bs_backend_balancing_mode" {
+  type = string
+}
+variable "lb_bs_backend_capacity_scaler" {
+  type = number
+}
+variable "cert_name" {
+  type = string
+}
+variable "cert_pk_path" {
+  type = string
+}
+variable "cert_crt_path" {
+  type = string
+}
+#https proxy
+variable "https_proxy_name" {
+  type = string
+}
