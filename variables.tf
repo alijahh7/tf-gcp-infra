@@ -271,6 +271,24 @@ variable "vpc_connector_name" {
 variable "vpc_connector_ip" {
   type = string
 }
+
+#cloud function
+variable "cf_account_id" {
+  type = string
+}
+variable "cf_display_name" {
+  type = string
+}
+variable "run_invoker_role" {
+  type = string
+}
+variable "sql_client_role" {
+  type = string
+}
+variable "subscriber_role" {
+  type = string
+}
+
 variable "cloudfn_name" {
   type = string
 }
@@ -332,7 +350,7 @@ variable "mailgun_key" {
 variable "allow-health-check-rule" {
   type = string
 }
-variable "health-check-ip1"{
+variable "health-check-ip1" {
   type = string
 }
 variable "health-check-ip2" {
@@ -344,7 +362,7 @@ variable "health_check_name" {
   type = string
 }
 variable "health_check_description" {
-  type = string
+  type    = string
   default = "Health check via /healthz"
 }
 variable "hc_timeout_sec" {
@@ -444,7 +462,7 @@ variable "lb_urlmap_name" {
 variable "lb_bs_name" {
   type = string
 }
-variable "lb_bs_protocol"{
+variable "lb_bs_protocol" {
   type = string
 }
 variable "lb_bs_timeout" {
@@ -470,5 +488,58 @@ variable "cert_crt_path" {
 }
 #https proxy
 variable "https_proxy_name" {
+  type = string
+}
+#keyring
+variable "keyring_name" {
+  type = string
+}
+#keys
+variable "vm_key" {
+  type = string
+}
+variable "bucket_key" {
+  type = string
+}
+variable "sql_key" {
+  type = string
+}
+variable "key_rotation_period" {
+  type = string
+}
+#storage bucket
+variable "bucket_class" {
+  type = string
+}
+variable "zip_source" {
+  type = string
+}
+variable "bucket_obj_content_type" {
+  type = string
+}
+#cloud sql identity
+variable "sql_service" {
+  type = string
+}
+variable "kms_enc_dec_role" {
+  type = string
+}
+variable "compute_sa" {
+  type = string
+}
+variable "storage_sa" {
+  type = string
+}
+variable "cloud_function_name" {
+  type = string
+}
+#secrets
+variable "host_secret_name" {
+  type = string
+}
+variable "pass_secret_name" {
+  type = string
+}
+variable "kms_key_secret_name" {
   type = string
 }

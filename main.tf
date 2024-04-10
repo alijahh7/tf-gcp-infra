@@ -51,13 +51,13 @@ resource "google_compute_firewall" "deny-ssh-from-internet" {
     ports    = []
   }
   source_ranges = [var.internet-ip]
-  
+
 }
 
 resource "google_compute_firewall" "allow_health_check" {
   name          = var.allow-health-check-rule
   network       = google_compute_network.vpc_network.name
-  source_ranges = [var.health-check-ip1, var.health-check-ip2 ]
+  source_ranges = [var.health-check-ip1, var.health-check-ip2]
   priority      = var.allow-priority + 2
   allow {
     protocol = var.protocol
@@ -88,7 +88,8 @@ resource "google_sql_database_instance" "my_postgres_instance" {
   database_version    = var.instance-database-version
   region              = var.region
   deletion_protection = var.instance-delete-protect
-  depends_on          = [google_compute_network.vpc_network, google_service_networking_connection.private_vpc_connection]
+  depends_on          = [google_compute_network.vpc_network, google_service_networking_connection.private_vpc_connection, google_kms_crypto_key_iam_binding.sql_iam]
+  encryption_key_name = google_kms_crypto_key.sql-cmek.id
 
   settings {
     tier                        = var.instance-tier
@@ -177,7 +178,7 @@ resource "google_service_account" "vm_service_account" {
   display_name = var.sa_display_name
 }
 
-#IAM Roles for SA:
+#IAM Roles for VMSA:
 resource "google_project_iam_binding" "role_logging" {
   project = var.project_name
   role    = var.logging_role
@@ -204,6 +205,8 @@ resource "google_project_iam_binding" "role_pubsub_publisher" {
     "serviceAccount:${google_service_account.vm_service_account.email}"
   ]
 }
+
+
 #pubsub
 resource "google_pubsub_topic" "pub_sub_topic" {
   name                       = var.pubsub_topic
@@ -219,13 +222,53 @@ resource "google_vpc_access_connector" "serverless_vpc_connector" {
 }
 
 #cloud function -> depends on pubsub
+#Service Account for cloud fn
+resource "google_service_account" "cf_service_account" {
+  account_id   = var.cf_account_id
+  display_name = var.cf_display_name
+}
+resource "google_project_iam_binding" "role_run_invoker" {
+  project = var.project_name
+  role    = var.run_invoker_role
 
+  members = [
+    "serviceAccount:${google_service_account.cf_service_account.email}",
+  ]
+
+  depends_on = [
+    google_service_account.cf_service_account
+  ]
+}
+resource "google_project_iam_binding" "role_subscriber" {
+  project = var.project_name
+  role    = var.subscriber_role
+
+  members = [
+    "serviceAccount:${google_service_account.cf_service_account.email}",
+  ]
+
+  depends_on = [
+    google_service_account.cf_service_account
+  ]
+}
+resource "google_project_iam_binding" "role_cloudsql_client" {
+  project = var.project_name
+  role    = var.sql_client_role
+
+  members = [
+    "serviceAccount:${google_service_account.cf_service_account.email}",
+  ]
+
+  depends_on = [
+    google_service_account.cf_service_account
+  ]
+}
 
 resource "google_cloudfunctions2_function" "email_cloud_function" {
   name        = var.cloudfn_name
   location    = var.cloudfn_location
   description = var.cloudfn_description
-  depends_on  = [google_sql_database_instance.my_postgres_instance, google_vpc_access_connector.serverless_vpc_connector]
+  depends_on  = [google_sql_database_instance.my_postgres_instance, google_vpc_access_connector.serverless_vpc_connector, google_storage_bucket.serverless_bucket, google_storage_bucket_object.serverless_zip]
 
 
   build_config {
@@ -241,8 +284,11 @@ resource "google_cloudfunctions2_function" "email_cloud_function" {
     }
     source {
       storage_source {
-        bucket = var.cloudfn_storage_bucket
-        object = var.cloudfn_storage_object
+        # bucket = var.cloudfn_storage_bucket
+        # object = var.cloudfn_storage_object
+        bucket = google_storage_bucket.serverless_bucket.id
+        object = google_storage_bucket_object.serverless_zip.name
+
       }
     }
   }
@@ -263,8 +309,8 @@ resource "google_cloudfunctions2_function" "email_cloud_function" {
     }
     ingress_settings               = var.cloudfn_serviceconf_ingress
     all_traffic_on_latest_revision = var.cloudfn_serviceconf_latest_revision
-    //service_account_email          = google_service_account.default.email
-    vpc_connector = google_vpc_access_connector.serverless_vpc_connector.name
+    service_account_email          = google_service_account.cf_service_account.email
+    vpc_connector                  = google_vpc_access_connector.serverless_vpc_connector.name
 
   }
 
@@ -281,11 +327,14 @@ resource "google_compute_region_instance_template" "centos_vm_template" {
   name         = "${var.vm-name}-template"
   machine_type = var.vm-type
   //region       = "${var.region}-${var.vm-zone-append}"
-  depends_on   = [google_compute_network.vpc_network, google_service_account.vm_service_account, google_sql_database_instance.my_postgres_instance, google_pubsub_topic.pub_sub_topic]
+  depends_on = [google_compute_network.vpc_network, google_service_account.vm_service_account, google_sql_database_instance.my_postgres_instance, google_pubsub_topic.pub_sub_topic]
   disk {
     source_image = var.custom-image-family
     auto_delete  = true
     boot         = true
+    disk_encryption_key {
+      kms_key_self_link = google_kms_crypto_key.vm-cmek.id
+    }
   }
   network_interface {
     network    = google_compute_network.vpc_network.id
@@ -327,8 +376,8 @@ resource "google_compute_region_health_check" "webapp-health-check" {
 
 #instance group manager
 resource "google_compute_region_instance_group_manager" "vm-group-manager" {
-  name = var.mig_name
-  depends_on = [ google_compute_region_health_check.webapp-health-check ]
+  name                      = var.mig_name
+  depends_on                = [google_compute_region_health_check.webapp-health-check]
   base_instance_name        = var.mig_base_name
   region                    = var.region
   distribution_policy_zones = [var.mig_zone_a, var.mig_zone_f]
@@ -415,10 +464,10 @@ resource "google_compute_region_backend_service" "lb_backend_service" {
   load_balancing_scheme = var.lb_bs_load_balancing_scheme
   timeout_sec           = var.lb_bs_timeout
   //enable_cdn            = true
-  health_checks         = [google_compute_region_health_check.webapp-health-check.id]
+  health_checks = [google_compute_region_health_check.webapp-health-check.id]
   backend {
-    group          = google_compute_region_instance_group_manager.vm-group-manager.instance_group
-    balancing_mode = var.lb_bs_backend_balancing_mode
+    group           = google_compute_region_instance_group_manager.vm-group-manager.instance_group
+    balancing_mode  = var.lb_bs_backend_balancing_mode
     capacity_scaler = var.lb_bs_backend_capacity_scaler
   }
 }
@@ -435,4 +484,125 @@ resource "google_compute_region_target_https_proxy" "target_proxy" {
   name             = var.https_proxy_name
   url_map          = google_compute_region_url_map.lb_url_map.id
   ssl_certificates = [google_compute_region_ssl_certificate.ssl_cert.id]
+}
+# #keyring
+resource "google_kms_key_ring" "keyring" {
+  name     = var.keyring_name
+  location = var.region
+}
+# #keys
+resource "google_kms_crypto_key" "vm-cmek" {
+  name            = var.vm_key
+  key_ring        = google_kms_key_ring.keyring.id
+  rotation_period = var.key_rotation_period
+}
+resource "google_kms_crypto_key" "bucket-cmek" {
+  name            = var.bucket_key
+  key_ring        = google_kms_key_ring.keyring.id
+  rotation_period = var.key_rotation_period
+}
+resource "google_kms_crypto_key" "sql-cmek" {
+  name            = var.sql_key
+  key_ring        = google_kms_key_ring.keyring.id
+  rotation_period = var.key_rotation_period
+}
+
+#storage bucket
+resource "google_storage_bucket" "serverless_bucket" {
+  name          = var.cloud_function_name
+  location      = var.region
+  storage_class = var.bucket_class
+  depends_on = [ google_kms_crypto_key_iam_binding.storage_iam ]
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.bucket-cmek.id
+  }
+}
+resource "google_storage_bucket_object" "serverless_zip" {
+  name         = var.cloudfn_storage_object
+  source       = var.zip_source
+  content_type = var.bucket_obj_content_type
+  bucket       = google_storage_bucket.serverless_bucket.id
+}
+#cloud sql identity
+
+resource "google_project_service_identity" "sql_sa" {
+  provider = google-beta
+  project  = var.project_name
+  service  = var.sql_service
+}
+#key bindings IAM
+resource "google_kms_crypto_key_iam_binding" "sql_iam" {
+  provider      = google-beta
+  crypto_key_id = google_kms_crypto_key.sql-cmek.id
+  role          = var.kms_enc_dec_role
+  depends_on    = [google_kms_crypto_key.sql-cmek]
+  members = [
+    "serviceAccount:${google_project_service_identity.sql_sa.email}",
+  ]
+}
+
+resource "google_kms_crypto_key_iam_binding" "vm_iam" {
+  provider      = google-beta
+  crypto_key_id = google_kms_crypto_key.vm-cmek.id
+  role          = var.kms_enc_dec_role
+  depends_on    = [google_kms_crypto_key.vm-cmek]
+  members = [
+    "serviceAccount:${google_service_account.vm_service_account.email}",
+    "serviceAccount:${var.compute_sa}"
+  ]
+}
+
+
+resource "google_kms_crypto_key_iam_binding" "storage_iam" {
+  provider      = google-beta
+  crypto_key_id = google_kms_crypto_key.bucket-cmek.id
+  role          = var.kms_enc_dec_role
+  depends_on    = [ google_kms_crypto_key.bucket-cmek]
+  members = [
+    "serviceAccount:${var.storage_sa}"
+  ]
+}
+#secrets
+resource "google_secret_manager_secret" "secret-metadata-host" {
+  secret_id = var.host_secret_name
+  replication {
+    auto {
+
+    }
+  }
+}
+resource "google_secret_manager_secret_version" "secret-db-host" {
+  secret = google_secret_manager_secret.secret-metadata-host.id
+
+  secret_data = google_sql_database_instance.my_postgres_instance.private_ip_address
+  depends_on  = [google_sql_database_instance.my_postgres_instance]
+}
+
+resource "google_secret_manager_secret" "secret-metadata-pass" {
+  secret_id = var.pass_secret_name
+  replication {
+    auto {
+
+    }
+  }
+}
+resource "google_secret_manager_secret_version" "secret-db-pass" {
+  secret = google_secret_manager_secret.secret-metadata-pass.id
+
+  secret_data = google_sql_user.psql_user.password
+  depends_on  = [google_sql_database.psql_database]
+}
+resource "google_secret_manager_secret" "secret-kms-key" {
+  secret_id = var.kms_key_secret_name
+  replication {
+    auto {
+
+    }
+  }
+}
+resource "google_secret_manager_secret_version" "secret-kms-vm" {
+  secret = google_secret_manager_secret.secret-kms-key.id
+
+  secret_data = google_kms_crypto_key.vm-cmek.id
+  depends_on  = [google_kms_crypto_key.vm-cmek]
 }
